@@ -26,7 +26,7 @@ async def create_room(data:CreateRoom,db:AsyncSession):
     await db.refresh(room)
     
     #in-memory update
-    room[room.id]={
+    rooms[room.id]={
         "players":[],
         "canvas_event":[],
         "guess_word":"",
@@ -36,6 +36,7 @@ async def create_room(data:CreateRoom,db:AsyncSession):
     }
     
     return room  
+
     
 async def get_room_by_id(room_id:int,db:AsyncSession):
     result=await db.execute(select(Room).where(Room.id==room_id))
@@ -45,6 +46,7 @@ async def get_room_by_id(room_id:int,db:AsyncSession):
         raise HTTPException(status_code=404,detail="Room not Found")
     
     return room
+ 
     
 async def join_room(data:joinRoom,db:AsyncSession):
     room=await get_room_by_id(data.room_id,db)
