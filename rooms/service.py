@@ -1,7 +1,7 @@
 from rooms.schema import joinRoom,CreateRoom
 from rooms.model import Room
 from players.model import Player
-from shared_state import rooms
+from shared_state import create_room_state,get_room_state,update_room_state
 from utils.security import hash_password,verify_password
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
@@ -24,16 +24,10 @@ async def create_room(data:CreateRoom,db:AsyncSession):
     db.add(room)
     await db.commit()
     await db.refresh(room)
+
     
-    #in-memory update
-    rooms[room.id]={
-        "players":[],
-        "canvas_event":[],
-        "guess_word":"",
-        "timer":None,
-        "status":room.status,
-        "max_players":room.max_players
-    }
+    #redis state
+    create_room_state(room.id,room.max_players)
     
     return room  
 
@@ -50,24 +44,25 @@ async def get_room_by_id(room_id:int,db:AsyncSession):
     
 async def join_room(data:joinRoom,db:AsyncSession):
     room=await get_room_by_id(data.room_id,db)
+
     
     #password check
     if room.is_private:
         if not data.password:
-            raise HTTPException(status_code=404,detail="Password required")
+            raise HTTPException(status_code=400,detail="Password required")
         
         if not verify_password(data.password,room.password):
             raise HTTPException(status_code=401,detail="Incorrect password")
         
-    #get in-memory room
-    in_memory_room=room.get(room.id)
+   #redis-state
+    room_state=get_room_state(room.id)
     
-    if not in_memory_room:
-        raise HTTPException(500,"Room not initialized in memory")
+    if not room_state:
+        raise HTTPException(status_code=500,detail="Room state missing")
     
     #player limit check
-    if len(in_memory_room["players"])>=room.max_players:
-        raise HTTPException(400,"Room is full")    
+    if len(room_state["players"])>=room.max_players:
+        raise HTTPException(status_code=400,detail="Room is full")    
         
     #create player (DB)
     player=Player(
@@ -82,14 +77,16 @@ async def join_room(data:joinRoom,db:AsyncSession):
     await db.commit()
     await db.refresh(player)
     
-    #add to in-memory players list
-    
-    in_memory_room["players"].append({
+    #update redis
+    room_state["players"].append({
         "id":player.id,
         "name":player.name,
-        "score":player.score,
-        "is_guessed":player.is_guessed,
-        "role":player.role
+        "score":0,
+        "is_guessed":False,
+        "role":"guesser"
     })
+    
+    update_room_state(room.id,room_state)
+
     
     return player    
