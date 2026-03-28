@@ -1,6 +1,6 @@
 from fastapi import FastAPI,WebSocket
 from database import engine,Base
-from websockets.router import websocket_endpoint
+from websockets_conn.router import websocket_endpoint
 
 from rooms.router import router as rooms_router
 

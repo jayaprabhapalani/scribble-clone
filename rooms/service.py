@@ -97,6 +97,9 @@ async def join_room(data:joinRoom,db:AsyncSession):
         "role":role
     })
     
+    if len(room_state["players"])==1:
+        room_state["drawer_id"]=player.id
+    
     await update_room_state(room.id,room_state)
 
     

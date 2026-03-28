@@ -1,4 +1,3 @@
-from fastapi import WebSocket
 import json
 from redis_client import r
 
@@ -10,7 +9,8 @@ async def create_room_state(room_id:int,max_player:int):
         "players":[],
         "canvas_event":[],
         "status":"waiting",
-        "max_palyers":max_player
+        "max_players":max_player,
+        "drawer_id":None
     }
     
     await r.set(f"room:{room_id}",json.dumps(room_data))
@@ -23,3 +23,5 @@ async def get_room_state(room_id:int):
 async def update_room_state(room_id:int,data:dict):
     await r.set(f"room:{room_id}",json.dumps(data))
     
+async def delete_room_state(room_id:int):
+    await r.delete(f"room:{room_id}")
