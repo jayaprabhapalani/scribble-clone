@@ -27,7 +27,7 @@ async def create_room(data:CreateRoom,db:AsyncSession):
 
     
     #redis state
-    create_room_state(room.id,room.max_players)
+    await create_room_state(room.id,room.max_players)
     
     return room  
 
@@ -55,7 +55,7 @@ async def join_room(data:joinRoom,db:AsyncSession):
             raise HTTPException(status_code=401,detail="Incorrect password")
         
    #redis-state
-    room_state=get_room_state(room.id)
+    room_state=await get_room_state(room.id)
     
     if not room_state:
         raise HTTPException(status_code=500,detail="Room state missing")
@@ -63,6 +63,15 @@ async def join_room(data:joinRoom,db:AsyncSession):
     #player limit check
     if len(room_state["players"])>=room.max_players:
         raise HTTPException(status_code=400,detail="Room is full")    
+    
+    #get the current players    
+    players=room_state.get("players",[])
+    
+    #role assignment
+    if len(players)==0:
+        role="drawer"
+    else:
+        role="guesser"
         
     #create player (DB)
     player=Player(
@@ -70,12 +79,14 @@ async def join_room(data:joinRoom,db:AsyncSession):
         room_id=room.id,
         score=0,
         is_guessed=False,
-        role="guesser"
+        role=role
     )  
      
     db.add(player)
     await db.commit()
     await db.refresh(player)
+    
+    
     
     #update redis
     room_state["players"].append({
@@ -83,10 +94,10 @@ async def join_room(data:joinRoom,db:AsyncSession):
         "name":player.name,
         "score":0,
         "is_guessed":False,
-        "role":"guesser"
+        "role":role
     })
     
-    update_room_state(room.id,room_state)
+    await update_room_state(room.id,room_state)
 
     
     return player    

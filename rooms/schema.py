@@ -1,4 +1,4 @@
-from pydantic import BaseModel,ConfigDict,model_validator
+from pydantic import BaseModel,ConfigDict,model_validator,Field
 from datetime import datetime
 from typing import List,Optional
 from players.schema import PlayerResponse
@@ -7,7 +7,12 @@ class CreateRoom(BaseModel):
     name:str
     is_private:bool=False
     password:Optional[str]=None
-    max_players:int=5
+    max_players:int=Field(
+        default=5,
+        ge=2, # min players
+        le=12 # max players 
+        
+    )
     
     #validation logic for password
     @model_validator(mode="after")

@@ -1,5 +1,6 @@
-from fastapi import FastAPI
+from fastapi import FastAPI,WebSocket
 from database import engine,Base
+from websockets.router import websocket_endpoint
 
 from rooms.router import router as rooms_router
 
@@ -20,4 +21,8 @@ async def startup():
 
 @app.get("/")
 async def root():
-    return {"message":"Server is runnig"}        
+    return {"message":"Server is runnig"}  
+
+@app.websocket("/ws/{room_id}/{player_id}")
+async def ws_route(websocket:WebSocket,room_id:int,player_id:int):
+    await websocket_endpoint(websocket,room_id,player_id)      

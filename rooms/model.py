@@ -11,7 +11,7 @@ class Room(Base):
     status=Column(String,default="waiting")
     is_private=Column(Boolean,default=False)
     password=Column(String,nullable=True)
-    max_players=Column(Integer,default=5,max=16,min=2)
+    max_players=Column(Integer)
     
     # relationship
     players=relationship("Player",back_populates="room")
