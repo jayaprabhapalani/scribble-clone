@@ -13,6 +13,11 @@ class CreateRoom(BaseModel):
         le=12 # max players 
         
     )
+    max_rounds:int=Field(
+        default=3,
+        ge=1,
+        le=5
+    )
     
     #validation logic for password
     @model_validator(mode="after")

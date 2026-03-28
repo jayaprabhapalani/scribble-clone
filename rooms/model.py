@@ -12,6 +12,7 @@ class Room(Base):
     is_private=Column(Boolean,default=False)
     password=Column(String,nullable=True)
     max_players=Column(Integer)
+    max_rounds=Column(Integer)
     
     # relationship
     players=relationship("Player",back_populates="room")
