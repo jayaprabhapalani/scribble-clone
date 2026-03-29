@@ -3,6 +3,7 @@ from database import engine,Base
 from websockets_conn.router import websocket_endpoint
 
 from rooms.router import router as rooms_router
+from leaderboard.router import router as leaderboard_router
 
 
 app=FastAPI(title="Scribble")
@@ -10,6 +11,7 @@ app=FastAPI(title="Scribble")
 
 #include routers
 app.include_router(rooms_router)
+app.include_router(leaderboard_router)
 
 
 #create table
