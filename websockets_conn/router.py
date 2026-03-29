@@ -1,7 +1,9 @@
+import copy
 from fastapi import WebSocket,WebSocketDisconnect
 from websockets_conn.manager import manager
 from shared_state import get_room_state,update_room_state,delete_room_state,round_events
 from game.service import try_start_lobby
+from utils.mask_work import mask_word
 
 async def websocket_endpoint(websocket:WebSocket,room_id:int,player_id:int):
     # moment -1 connect
@@ -15,10 +17,16 @@ async def websocket_endpoint(websocket:WebSocket,room_id:int,player_id:int):
             await websocket.close()
             return
         
+        safe_state=copy.deepcopy(room_state)
+        
+        if safe_state.get("current_word"):
+            if player_id != safe_state.get("drawer_id"):
+                safe_state["current_word"]=mask_word(safe_state["current_word"])
+        
         #send catchup payload to this player
         await manager.send_personal_message(websocket,{
             "event":"init",
-            "data":room_state
+            "data":safe_state
         })
         
         #broadcast join to others (exclude self optional)
