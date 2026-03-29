@@ -1,6 +1,7 @@
 from fastapi import WebSocket,WebSocketDisconnect
 from websockets_conn.manager import manager
-from shared_state import get_room_state,update_room_state,delete_room_state
+from shared_state import get_room_state,update_room_state,delete_room_state,round_events
+from game.service import try_start_lobby
 
 async def websocket_endpoint(websocket:WebSocket,room_id:int,player_id:int):
     # moment -1 connect
@@ -49,7 +50,7 @@ async def websocket_endpoint(websocket:WebSocket,room_id:int,player_id:int):
              
             # GUESS EVENT
             elif event_type=="guess":
-                guess=data.get("data")
+                guess=data.get("data").strip().lower()
                 
                 room_state=await get_room_state(room_id)
                 
@@ -57,11 +58,20 @@ async def websocket_endpoint(websocket:WebSocket,room_id:int,player_id:int):
                 
                 drawer_id=room_state.get("drawer_id")
                 
-                if guess==correct_word:
+                if guess.strip().lower()==correct_word:
+                   
                     #update score
                     for player in room_state["players"]:
-                        if player["id"]==player_id:
+                        if player["id"]==player_id and not player["is_guessed"]:
                             player["score"]+=10
+                            player["is_guessed"]=True
+                    
+                    guessers=[p for p in room_state["players"] if p["id"]!= drawer_id]    
+                    
+                    #ONLY end round if all guessed
+                    if all(p["is_guessed"] for p in guessers) :
+                        #end round 
+                        round_events[room_id].set()  
                             
                     await update_room_state(room_id,room_state)
                     
