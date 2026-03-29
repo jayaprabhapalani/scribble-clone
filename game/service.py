@@ -2,7 +2,9 @@ import asyncio
 from shared_state import get_room_state,update_room_state,room_tasks,round_events
 from words import get_random_word
 from websockets_conn.manager import manager
-
+from database import SessionLocal
+from players.model import Player
+from sqlalchemy import update
 
 MIN_PLAYERS=2
 
@@ -61,10 +63,15 @@ async def game_loop(room_id:int):
             await manager.broadcast(room_id,{
                 "event":"game_end"
             })
+            # save score in db
+            await persist_scores(room_id)
             break
         
         await run_round(room_id)
         round_count+=1
+        
+    #cleanup
+    room_tasks.pop(room_id,None)    
         
 async def run_round(room_id:int):
     room_state=await get_room_state(room_id)
@@ -127,4 +134,21 @@ async def send_word_to_drawer(room_id:int,drawer_id:int,word:str):
         await ws.send_json({
             "event":"your_word",
             "word":word
-        })    
+        }) 
+        
+# to store the score in db when the game ends
+async def persist_scores(room_id:int):
+    room_state=await get_room_state(room_id)
+    
+    if not room_state:
+        return
+    
+    async with SessionLocal() as db:
+        for player in room_state["players"]:
+            stmt=(
+                update(Player)
+                .where(Player.id==player["id"])
+                .values(score=Player.score+player["score"])
+            ) 
+            await db.execute(stmt)   
+        await db.commit()           
