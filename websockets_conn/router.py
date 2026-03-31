@@ -35,6 +35,9 @@ async def websocket_endpoint(websocket:WebSocket,room_id:int,player_id:int):
             "player_id":player_id
         },exclude=player_id)
         
+        #Start lobby if condition met
+        await try_start_lobby(room_id)
+        
         
         #moment-2 message loop
         while True:
