@@ -2,10 +2,10 @@ import copy
 import json
 from fastapi import WebSocket,WebSocketDisconnect
 from websockets_conn.manager import manager
-from shared_state import get_room_state,update_room_state,delete_room_state,round_events
+from shared_state import get_room_state,update_room_state,delete_room_state,round_events 
 from game.service import try_start_lobby
 from utils.mask_work import mask_word
-from redis_client import redis
+from redis_client import pubsub_r
 
 async def websocket_endpoint(websocket:WebSocket,room_id:int,player_id:int):
     # moment -1 connect
@@ -38,7 +38,7 @@ async def websocket_endpoint(websocket:WebSocket,room_id:int,player_id:int):
         # },exclude=player_id)
         
         #publish to others (exclude self optional)
-        await redis.publish(f"room:{room_id}",json.dumps({
+        await pubsub_r.publish(f"room:{room_id}",json.dumps({
             "event":"join",
             "player_id":player_id,
             "exclude_id":player_id
@@ -68,7 +68,7 @@ async def websocket_endpoint(websocket:WebSocket,room_id:int,player_id:int):
                 #     "data":draw_data
                 # },exclude=player_id) # dont send to drawer
                 
-                await redis.publish(f"room:{room_id}",json.dumps({
+                await pubsub_r.publish(f"room:{room_id}",json.dumps({
                     "event":"draw",
                     "data":draw_data,
                     "exclude_id":player_id
@@ -84,7 +84,14 @@ async def websocket_endpoint(websocket:WebSocket,room_id:int,player_id:int):
                 
                 drawer_id=room_state.get("drawer_id")
                 
-                if guess.strip().lower()==correct_word:
+                if player_id == drawer_id:
+                    continue
+                
+                current_player = next((p for p in room_state["players"] if p["id"] == player_id), None)
+                if current_player and current_player["is_guessed"]:
+                    continue
+                
+                if guess.strip().lower() == correct_word:
                    
                     #update score
                     for player in room_state["players"]:
@@ -106,7 +113,7 @@ async def websocket_endpoint(websocket:WebSocket,room_id:int,player_id:int):
                     #     "player_id":player_id
                     # }) 
                     
-                    await redis.publish(f"room:{room_id}",json.dumps({
+                    await pubsub_r.publish(f"room:{room_id}",json.dumps({
                         "event":"correct_guess",
                         "player_id":player_id,
                     }))
@@ -117,7 +124,7 @@ async def websocket_endpoint(websocket:WebSocket,room_id:int,player_id:int):
                     #     "player_id":player_id,
                     #     "guess":guess
                     # },exclude=drawer_id) 
-                    await redis.publish(f"room:{room_id}",json.dumps({
+                    await pubsub_r.publish(f"room:{room_id}",json.dumps({
                         "event":"guess",
                         "player_id":player_id,
                         "guess":guess,
@@ -142,7 +149,7 @@ async def websocket_endpoint(websocket:WebSocket,room_id:int,player_id:int):
                 await update_room_state(room_id,room_state)
             
         # 
-        await redis.publish(f"room:{room_id}",json.dumps({
+        await pubsub_r.publish(f"room:{room_id}",json.dumps({
             "event":"leave",
             "player_id":player_id
         }))

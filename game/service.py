@@ -1,10 +1,12 @@
 import asyncio
+import json
 from shared_state import get_room_state,update_room_state,room_tasks,round_events
 from words import get_random_word
 from websockets_conn.manager import manager
 from database import SessionLocal
 from players.model import Player
 from sqlalchemy import update
+from redis_client import r
 
 MIN_PLAYERS=2
 
@@ -15,10 +17,10 @@ async def lobby_countdown(room_id:int):
         if not room_state or len(room_state["players"])<MIN_PLAYERS:
             return # stop countdown
         
-        await manager.broadcast(room_id,{
+        await r.publish(f"room:{room_id}",json.dumps({
             "type":"countdown",
             "value":i
-        })
+        }))
         await asyncio.sleep(1)
         
     # start game after countdown
@@ -60,9 +62,7 @@ async def game_loop(room_id:int):
             break
         
         if round_count>=max_rounds:
-            await manager.broadcast(room_id,{
-                "event":"game_end"
-            })
+            await r.publish(f"room:{room_id}",json.dumps({"event":"game_end"}))
             # save score in db
             await persist_scores(room_id)
             break
@@ -72,6 +72,11 @@ async def game_loop(room_id:int):
         
     #cleanup
     room_tasks.pop(room_id,None)    
+        
+async def _tick_timer(room_id:int):
+    for i in range(ROUND_TIME,0,-1):
+        await r.publish(f"room:{room_id}",json.dumps({"type":"timer","value":i}))
+        await asyncio.sleep(1)
         
 async def run_round(room_id:int):
     room_state=await get_room_state(room_id)
@@ -92,31 +97,31 @@ async def run_round(room_id:int):
     await update_room_state(room_id,room_state)
     
     #notify players
-    await manager.broadcast(room_id,{
+    await r.publish(f"room:{room_id}",json.dumps({
         "type":"round_start",
         "drawer_id":drawer_id
-    })  
+    }))
     
     # send word only to drawer
     await send_word_to_drawer(room_id,drawer_id,word)
     
-    #reset  round event
+    #reset round event
     round_events[room_id].clear()
     
-    #wait for guess or timeout
+    timer_task=asyncio.create_task(_tick_timer(room_id))
+    
     try:
-        await asyncio.wait_for(
-            round_events[room_id].wait(),
-            timeout=ROUND_TIME   
-        )
+        await asyncio.wait_for(round_events[room_id].wait(),timeout=ROUND_TIME)
     except asyncio.TimeoutError:
         pass
+    finally:
+        timer_task.cancel()
     
     #round ended
-    await manager.broadcast(room_id,{
+    await r.publish(f"room:{room_id}",json.dumps({
         "type":"round_end",
         "word":word
-    })  
+    }))
     
     #clear canvas
     room_state["canvas_event"]=[]

@@ -2,7 +2,7 @@ from typing import Dict,List
 from fastapi import WebSocket
 import asyncio
 import json
-from redis_client import redis
+from redis_client import pubsub_r
 
 class ConnectionManager:
     def __init__(self): 
@@ -34,7 +34,7 @@ class ConnectionManager:
     
     #pub/sub listener
     async def listen_to_channel(self,room_id:int): 
-        async with redis.pubsub() as ps:
+        async with pubsub_r.pubsub() as ps:
             await ps.subscribe(f'room:{room_id}')
             async for message in ps.listen():
                 if message["type"]=="message":
