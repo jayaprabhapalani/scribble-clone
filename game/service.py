@@ -10,6 +10,8 @@ from redis_client import r
 
 MIN_PLAYERS=2
 
+_lobby_lock=asyncio.Lock() # to avoid race condition
+
 async def lobby_countdown(room_id:int):
     for i in range(10,0,-1):
         room_state=await get_room_state(room_id)
@@ -39,9 +41,13 @@ async def try_start_lobby(room_id:int):
     players=room_state["players"]
     
     if len(players)>= MIN_PLAYERS and room_tasks.get(room_id) is None:
-        room_tasks[room_id]=asyncio.create_task(
-            lobby_countdown(room_id)
-        )      
+        # to stop race condition -- only one coroutine enters at a time for a room
+        async with _lobby_lock:
+            if room_tasks.get(room_id) is not None: 
+
+                room_tasks[room_id]=asyncio.create_task(
+                lobby_countdown(room_id)
+                )      
         
         
         
