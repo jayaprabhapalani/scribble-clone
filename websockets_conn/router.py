@@ -37,6 +37,13 @@ async def websocket_endpoint(websocket:WebSocket,room_id:int,player_id:int):
         #     "player_id":player_id
         # },exclude=player_id)
         
+        # if reconnecting player is the drawer mid-round, resend their word
+        if room_state.get("drawer_id")==player_id and room_state.get("current_word"):
+            await manager.send_personal_message(websocket,{
+                "event":"drawer_hint",
+                "data":room_state["current_word"]
+            })
+        
         #publish to others (exclude self optional)
         await pubsub_r.publish(f"room:{room_id}",json.dumps({
             "event":"join",
