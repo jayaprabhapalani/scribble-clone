@@ -1,6 +1,6 @@
 import asyncio
 import json
-from shared_state import get_room_state,update_room_state,room_tasks,round_events
+from shared_state import get_room_state,update_room_state,delete_room_state,room_tasks,round_events
 from words import get_random_word
 from websockets_conn.manager import manager
 from database import SessionLocal
@@ -43,11 +43,8 @@ async def try_start_lobby(room_id:int):
     if len(players)>= MIN_PLAYERS and room_tasks.get(room_id) is None:
         # to stop race condition -- only one coroutine enters at a time for a room
         async with _lobby_lock:
-            if room_tasks.get(room_id) is not None: 
-
-                room_tasks[room_id]=asyncio.create_task(
-                lobby_countdown(room_id)
-                )      
+            if room_tasks.get(room_id) is None:          # re-check inside lock
+                room_tasks[room_id]=asyncio.create_task(lobby_countdown(room_id))
         
         
         
@@ -69,8 +66,9 @@ async def game_loop(room_id:int):
         
         if round_count>=max_rounds:
             await r.publish(f"room:{room_id}",json.dumps({"event":"game_end"}))
-            # save score in db
             await persist_scores(room_id)
+            await delete_room_state(room_id)
+            round_events.pop(room_id,None)
             break
         
         await run_round(room_id)
