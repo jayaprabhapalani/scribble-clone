@@ -5,6 +5,9 @@ import asyncio
 round_events={}     # room_id -> asyncio.Event
 room_tasks = {}     # room_id -> asyncio.Task
 
+ROOM_TTL = 3600  # 1 hour
+
+
 # room={} --- it will be lost when we restart the server again
 # so we're gonna use redis to avoid this
 """ round_events → control flow (when to stop round)
@@ -22,7 +25,7 @@ async def create_room_state(room_id:int,max_player:int):
         "max_rounds":3
     }
     
-    await r.set(f"room:{room_id}",json.dumps(room_data))
+    await r.set(f"room:{room_id}",json.dumps(room_data),ex=ROOM_TTL)
     
     #initialize control structure
     round_events[room_id]=asyncio.Event()
@@ -34,7 +37,7 @@ async def get_room_state(room_id:int):
     return json.loads(data) if data else None
 
 async def update_room_state(room_id:int,data:dict):
-    await r.set(f"room:{room_id}",json.dumps(data))
+    await r.set(f"room:{room_id}",json.dumps(data),ex=ROOM_TTL)
     
     
 async def delete_room_state(room_id:int):
