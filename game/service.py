@@ -68,14 +68,10 @@ async def game_loop(room_id:int):
             await r.publish(f"room:{room_id}",json.dumps({"event":"game_end"}))
             await persist_scores(room_id)
             await delete_room_state(room_id)
-            round_events.pop(room_id,None)
             break
         
         await run_round(room_id)
         round_count+=1
-        
-    #cleanup
-    room_tasks.pop(room_id,None)    
         
 async def _tick_timer(room_id:int):
     for i in range(ROUND_TIME,0,-1):
