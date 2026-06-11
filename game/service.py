@@ -85,9 +85,17 @@ async def run_round(room_id:int):
         player["is_guessed"]=False
     
     players=room_state["players"]
-    drawer_index=room_state.get("drawer_index",0)
+    last_drawer_id=room_state.get("drawer_id")
     
-    drawer=players[drawer_index]
+    # find next drawer by id, not index
+    current_ids=[p["id"] for p in players]
+    if last_drawer_id in current_ids:
+        current_pos=current_ids.index(last_drawer_id)
+        next_pos=(current_pos+1) % len(players)
+    else:
+        next_pos=0  # last drawer left, start from beginning
+    
+    drawer=players[next_pos]
     drawer_id=drawer["id"]
     word=get_random_word()
     
@@ -125,9 +133,6 @@ async def run_round(room_id:int):
     
     #clear canvas
     room_state["canvas_event"]=[]
-    
-    #move to the next drawer
-    room_state["drawer_index"]=(drawer_index+1) % len(players)
     
     await update_room_state(room_id,room_state)      
         
