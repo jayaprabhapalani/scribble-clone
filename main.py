@@ -1,4 +1,5 @@
 from fastapi import FastAPI,WebSocket
+from fastapi.middleware.cors import CORSMiddleware
 from database import engine,Base
 from websockets_conn.router import websocket_endpoint
 
@@ -7,6 +8,16 @@ from leaderboard.router import router as leaderboard_router
 
 
 app=FastAPI(title="Scribble")
+
+
+# middlewares
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 #include routers
