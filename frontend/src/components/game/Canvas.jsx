@@ -10,12 +10,10 @@ export default function Canvas({ sendMessage }) {
 
   const [isEraser, setIsEraser] = useState(false)
 
-  const { playerId, drawerId, canvasEvents, clearCanvas } = useGameStore((s) => ({
-    playerId: s.playerId,
-    drawerId: s.drawerId,
-    canvasEvents: s.canvasEvents,
-    clearCanvas: s.clearCanvas,
-  }))
+  const playerId = useGameStore((s) => s.playerId)
+  const drawerId = useGameStore((s) => s.drawerId)
+  const canvasEvents = useGameStore((s) => s.canvasEvents)
+  const clearCanvas = useGameStore((s) => s.clearCanvas)
 
   const isDrawer = playerId === drawerId
 
@@ -41,6 +39,13 @@ export default function Canvas({ sendMessage }) {
     if (!fc) return
     fc.isDrawingMode = isDrawer
     fc.selection = false
+    if (isDrawer) {
+      if (!fc.freeDrawingBrush) {
+        fc.freeDrawingBrush = new fabric.PencilBrush(fc)
+      }
+      fc.freeDrawingBrush.color = "#000000"
+      fc.freeDrawingBrush.width = 4
+    }
   }, [isDrawer])
 
   // listen to drawer's path creation and publish to backend

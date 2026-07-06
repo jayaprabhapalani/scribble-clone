@@ -1,4 +1,4 @@
-import { useEffect } from "react"
+import { useEffect, useRef } from "react"
 import { useNavigate, useParams } from "react-router-dom"
 import { useGameStore } from "../store/useGameStore"
 import { useWebSocket } from "../hooks/useWebSocket"
@@ -10,26 +10,27 @@ export default function LobbyPage() {
   const { roomId } = useParams()
   const navigate = useNavigate()
 
-  const { playerId, playerName, players, maxPlayers, timeLeft, messages, status } =
-    useGameStore((s) => ({
-      playerId: s.playerId,
-      playerName: s.playerName,
-      players: s.players,
-      maxPlayers: s.maxPlayers,
-      timeLeft: s.timeLeft,
-      messages: s.messages,
-      status: s.status,
-    }))
+  const playerId = useGameStore((s) => s.playerId)
+  const playerName = useGameStore((s) => s.playerName)
+  const players = useGameStore((s) => s.players)
+  const maxPlayers = useGameStore((s) => s.maxPlayers)
+  const timeLeft = useGameStore((s) => s.timeLeft)
+  const status = useGameStore((s) => s.status)
 
   const { sendMessage } = useWebSocket(parseInt(roomId), playerId)
 
-  // when backend sends round_start, game has begun — move to game page
+  const round = useGameStore((s) => s.round)
+
+  const navigated = useRef(false)
+
+  // navigate to game when first round starts
   useEffect(() => {
-    const lastMsg = messages[messages.length - 1]
-    if (lastMsg?.type === "system" && lastMsg.text.startsWith("Round started")) {
+    if (navigated.current) return
+    if (round > 0) {
+      navigated.current = true
       navigate(`/game/${roomId}`)
     }
-  }, [messages])
+  }, [round])
 
   const isCountingDown = timeLeft > 0 && status === "waiting"
   const needsMorePlayers = players.length < 2

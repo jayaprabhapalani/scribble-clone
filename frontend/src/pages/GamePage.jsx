@@ -14,12 +14,10 @@ export default function GamePage() {
   const { roomId } = useParams()
   const navigate = useNavigate()
 
-  const { playerId, players, messages, reset } = useGameStore((s) => ({
-    playerId: s.playerId,
-    players: s.players,
-    messages: s.messages,
-    reset: s.reset,
-  }))
+  const playerId = useGameStore((s) => s.playerId)
+  const players = useGameStore((s) => s.players)
+  const messages = useGameStore((s) => s.messages)
+  const reset = useGameStore((s) => s.reset)
 
   const { sendMessage } = useWebSocket(parseInt(roomId), playerId)
 

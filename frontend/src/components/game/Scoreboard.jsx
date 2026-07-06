@@ -3,11 +3,9 @@ import { Badge } from "../ui/badge"
 import { Crown, Pencil, CheckCircle2, Circle } from "lucide-react"
 
 export default function Scoreboard() {
-  const { players, drawerId, playerId } = useGameStore((s) => ({
-    players: s.players,
-    drawerId: s.drawerId,
-    playerId: s.playerId,
-  }))
+  const players = useGameStore((s) => s.players)
+  const drawerId = useGameStore((s) => s.drawerId)
+  const playerId = useGameStore((s) => s.playerId)
 
   // sort by score descending
   const sorted = [...players].sort((a, b) => b.score - a.score)

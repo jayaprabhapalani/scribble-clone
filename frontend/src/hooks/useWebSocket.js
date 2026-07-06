@@ -18,7 +18,6 @@ export function useWebSocket(roomId, playerId) {
     clearCanvas,
     addMessage,
     updateScore,
-    round,
   } = useGameStore()
 
   const handleMessage = useCallback(
@@ -31,7 +30,9 @@ export function useWebSocket(roomId, playerId) {
           break
 
         case "join":
-          addPlayer(data.player_id)
+          // backend only sends player_id on join, full player list comes via init
+          // re-fetch is handled by setRoomState on next init, just add a system message
+          addMessage({ type: "system", text: `Player ${data.player_id} joined` })
           break
 
         case "leave":
@@ -43,16 +44,19 @@ export function useWebSocket(roomId, playerId) {
           setTimeLeft(data.value)
           break
 
-        case "round_start":
+        case "round_start": {
+          const { playerId: pid } = useGameStore.getState()
           clearCanvas()
           setDrawer(data.drawer_id)
-          setCurrentWord(null)
-          setRound(round + 1)
+          if (pid !== data.drawer_id) setCurrentWord(null)
+          setRound(useGameStore.getState().round + 1)
           addMessage({ type: "system", text: `Round started! Drawer: ${data.drawer_id}` })
           break
+        }
 
         case "your_word":
-          setCurrentWord(data.word)
+        case "drawer_hint":
+          setCurrentWord(data.word ?? data.data)
           break
 
         case "timer":
@@ -89,27 +93,26 @@ export function useWebSocket(roomId, playerId) {
     [
       setRoomState, addPlayer, removePlayer, setDrawer,
       setCurrentWord, setTimeLeft, setRound, addCanvasEvent,
-      clearCanvas, addMessage, updateScore, round,
+      clearCanvas, addMessage, updateScore,
     ]
   )
 
   useEffect(() => {
     if (!roomId || !playerId) return
 
-    ws.current = new WebSocket(`${WS_BASE}/${roomId}/${playerId}`)
+    let socket
+    const timer = setTimeout(() => {
+      socket = new WebSocket(`${WS_BASE}/${roomId}/${playerId}`)
+      ws.current = socket
 
-    ws.current.onmessage = handleMessage
-
-    ws.current.onclose = () => {
-      console.log("WebSocket disconnected")
-    }
-
-    ws.current.onerror = (e) => {
-      console.error("WebSocket error", e)
-    }
+      socket.onmessage = handleMessage
+      socket.onclose = () => console.log("WebSocket disconnected")
+      socket.onerror = (e) => console.error("WebSocket error", e)
+    }, 50)
 
     return () => {
-      ws.current?.close()
+      clearTimeout(timer)
+      socket?.close()
     }
   }, [roomId, playerId])
 

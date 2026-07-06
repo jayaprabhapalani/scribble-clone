@@ -8,12 +8,10 @@ export default function ChatBox({ sendMessage }) {
   const [guess, setGuess] = useState("")
   const bottomRef = useRef(null)
 
-  const { playerId, drawerId, messages, players } = useGameStore((s) => ({
-    playerId: s.playerId,
-    drawerId: s.drawerId,
-    messages: s.messages,
-    players: s.players,
-  }))
+  const playerId = useGameStore((s) => s.playerId)
+  const drawerId = useGameStore((s) => s.drawerId)
+  const messages = useGameStore((s) => s.messages)
+  const players = useGameStore((s) => s.players)
 
   const isDrawer = playerId === drawerId
 

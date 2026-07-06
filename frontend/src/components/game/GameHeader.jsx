@@ -3,16 +3,13 @@ import { Badge } from "../ui/badge"
 import { Timer, Eye, EyeOff } from "lucide-react"
 
 export default function GameHeader() {
-  const { playerId, drawerId, currentWord, timeLeft, round, maxRounds, players } =
-    useGameStore((s) => ({
-      playerId: s.playerId,
-      drawerId: s.drawerId,
-      currentWord: s.currentWord,
-      timeLeft: s.timeLeft,
-      round: s.round,
-      maxRounds: s.maxRounds,
-      players: s.players,
-    }))
+  const playerId = useGameStore((s) => s.playerId)
+  const drawerId = useGameStore((s) => s.drawerId)
+  const currentWord = useGameStore((s) => s.currentWord)
+  const timeLeft = useGameStore((s) => s.timeLeft)
+  const round = useGameStore((s) => s.round)
+  const maxRounds = useGameStore((s) => s.maxRounds)
+  const players = useGameStore((s) => s.players)
 
   const isDrawer = playerId === drawerId
   const drawerName = players.find((p) => p.id === drawerId)?.name ?? "..."
