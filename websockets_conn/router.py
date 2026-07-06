@@ -1,8 +1,9 @@
+import asyncio
 import copy
 import json
 from fastapi import WebSocket,WebSocketDisconnect
 from websockets_conn.manager import manager
-from shared_state import get_room_state,update_room_state,delete_room_state,round_events 
+from shared_state import get_room_state,update_room_state,delete_room_state,round_events,room_tasks
 from game.service import try_start_lobby
 from utils.mask_work import mask_word
 from redis_client import r
@@ -18,6 +19,11 @@ async def websocket_endpoint(websocket:WebSocket,room_id:int,player_id:int):
         if not room_state:
             await websocket.close()
             return
+        
+        # rebuild in-memory control structures if server restarted
+        if room_id not in round_events:
+            round_events[room_id] = asyncio.Event()
+            room_tasks[room_id] = None
         
         safe_state=copy.deepcopy(room_state)
         
@@ -66,6 +72,8 @@ async def websocket_endpoint(websocket:WebSocket,room_id:int,player_id:int):
                 draw_data=data.get("data")
                 
                 room_state=await get_room_state(room_id)
+                if not room_state:
+                    continue
                 room_state["canvas_event"].append(draw_data)
                 
                 await update_room_state(room_id,room_state)
@@ -86,6 +94,8 @@ async def websocket_endpoint(websocket:WebSocket,room_id:int,player_id:int):
                 guess=data.get("data").strip().lower()
                 
                 room_state=await get_room_state(room_id)
+                if not room_state:
+                    continue
                 
                 correct_word=room_state.get("current_word")
                 

@@ -1,10 +1,11 @@
 from rooms.schema import joinRoom,CreateRoom
 from rooms.model import Room
-from players.model import Player
+from players.model import Player, PlayerRole
 from shared_state import create_room_state,get_room_state,update_room_state
 from utils.security import hash_password,verify_password
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
+from sqlalchemy.orm import selectinload
 from fastapi import HTTPException
 
 async def create_room(data:CreateRoom,db:AsyncSession):
@@ -25,11 +26,13 @@ async def create_room(data:CreateRoom,db:AsyncSession):
     await db.commit()
     await db.refresh(room)
 
-    
     #redis state
     await create_room_state(room.id,room.max_players)
     
-    return room  
+    result = await db.execute(
+        select(Room).where(Room.id == room.id).options(selectinload(Room.players))
+    )
+    return result.scalar_one()
 
     
 async def get_room_by_id(room_id:int,db:AsyncSession):
@@ -69,9 +72,9 @@ async def join_room(data:joinRoom,db:AsyncSession):
     
     #role assignment
     if len(players)==0:
-        role="drawer"
+        role=PlayerRole.DRAWER
     else:
-        role="guesser"
+        role=PlayerRole.GUESSER
         
     #create player (DB)
     player=Player(
@@ -94,7 +97,7 @@ async def join_room(data:joinRoom,db:AsyncSession):
         "name":player.name,
         "score":0,
         "is_guessed":False,
-        "role":role
+        "role":role.value
     })
     
     if len(room_state["players"])==1:
