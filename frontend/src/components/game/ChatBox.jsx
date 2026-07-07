@@ -13,7 +13,7 @@ export default function ChatBox({ sendMessage }) {
   const messages = useGameStore((s) => s.messages)
   const players = useGameStore((s) => s.players)
 
-  const isDrawer = playerId === drawerId
+  const isDrawer = Number(playerId) === Number(drawerId)
 
   const currentPlayer = players.find((p) => p.id === playerId)
   const alreadyGuessed = currentPlayer?.is_guessed ?? false

@@ -11,7 +11,7 @@ export default function GameHeader() {
   const maxRounds = useGameStore((s) => s.maxRounds)
   const players = useGameStore((s) => s.players)
 
-  const isDrawer = playerId === drawerId
+  const isDrawer = Number(playerId) === Number(drawerId)
   const drawerName = players.find((p) => p.id === drawerId)?.name ?? "..."
 
   // timer color — green > 10s, yellow > 5s, red <= 5s
