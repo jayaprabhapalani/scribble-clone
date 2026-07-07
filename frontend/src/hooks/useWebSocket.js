@@ -30,8 +30,6 @@ export function useWebSocket(roomId, playerId) {
           break
 
         case "join":
-          // backend only sends player_id on join, full player list comes via init
-          // re-fetch is handled by setRoomState on next init, just add a system message
           addMessage({ type: "system", text: `Player ${data.player_id} joined` })
           break
 
@@ -45,10 +43,9 @@ export function useWebSocket(roomId, playerId) {
           break
 
         case "round_start": {
-          const { playerId: pid } = useGameStore.getState()
           clearCanvas()
           setDrawer(data.drawer_id)
-          if (pid !== data.drawer_id) setCurrentWord(null)
+          setCurrentWord(null)
           setRound(useGameStore.getState().round + 1)
           addMessage({ type: "system", text: `Round started! Drawer: ${data.drawer_id}` })
           break
