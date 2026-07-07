@@ -20,8 +20,7 @@ async def create_room_state(room_id:int,max_player:int):
         "canvas_event":[],
         "status":"waiting",
         "max_players":max_player,
-        "drawer_id":None,
-        "current_word":None,
+        "drawer_id":None,        "current_word":None,
         "max_rounds":3
     }
     

@@ -61,7 +61,8 @@ async def join_room(data:joinRoom,db:AsyncSession):
     room_state=await get_room_state(room.id)
     
     if not room_state:
-        raise HTTPException(status_code=500,detail="Room state missing")
+        await create_room_state(room.id, room.max_players)
+        room_state=await get_room_state(room.id)
     
     #player limit check
     if len(room_state["players"])>=room.max_players:

@@ -20,7 +20,7 @@ async def lobby_countdown(room_id:int):
             return # stop countdown
         
         await r.publish(f"room:{room_id}",json.dumps({
-            "type":"countdown",
+            "event":"countdown",
             "value":i
         }))
         await asyncio.sleep(1)
@@ -50,7 +50,7 @@ async def try_start_lobby(room_id:int):
         
 #game_loop
 
-ROUND_TIME=30
+ROUND_TIME=120
 
 async def game_loop(room_id:int):
     round_count=0
@@ -75,7 +75,7 @@ async def game_loop(room_id:int):
         
 async def _tick_timer(room_id:int):
     for i in range(ROUND_TIME,0,-1):
-        await r.publish(f"room:{room_id}",json.dumps({"type":"timer","value":i}))
+        await r.publish(f"room:{room_id}",json.dumps({"event":"timer","value":i}))
         await asyncio.sleep(1)
         
 async def run_round(room_id:int):
@@ -89,11 +89,11 @@ async def run_round(room_id:int):
     
     # find next drawer by id, not index
     current_ids=[p["id"] for p in players]
-    if last_drawer_id in current_ids:
+    if last_drawer_id is None or last_drawer_id not in current_ids:
+        next_pos=0
+    else:
         current_pos=current_ids.index(last_drawer_id)
         next_pos=(current_pos+1) % len(players)
-    else:
-        next_pos=0  # last drawer left, start from beginning
     
     drawer=players[next_pos]
     drawer_id=drawer["id"]
@@ -106,14 +106,19 @@ async def run_round(room_id:int):
     
     #notify players
     await r.publish(f"room:{room_id}",json.dumps({
-        "type":"round_start",
+        "event":"round_start",
         "drawer_id":drawer_id
     }))
+    
+    # small delay so clients process round_start before receiving their word
+    await asyncio.sleep(0.3)
     
     # send word only to drawer
     await send_word_to_drawer(room_id,drawer_id,word)
     
     #reset round event
+    if room_id not in round_events:
+        round_events[room_id] = asyncio.Event()
     round_events[room_id].clear()
     
     timer_task=asyncio.create_task(_tick_timer(room_id))
@@ -127,7 +132,7 @@ async def run_round(room_id:int):
     
     #round ended
     await r.publish(f"room:{room_id}",json.dumps({
-        "type":"round_end",
+        "event":"round_end",
         "word":word
     }))
     
