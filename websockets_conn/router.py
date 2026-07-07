@@ -70,24 +70,21 @@ async def websocket_endpoint(websocket:WebSocket,room_id:int,player_id:int):
             #DRAW EVENT
             if event_type=="draw":
                 draw_data=data.get("data")
+                print(f"[DRAW] player {player_id} in room {room_id} sent draw")
                 
                 room_state=await get_room_state(room_id)
                 if not room_state:
+                    print(f"[DRAW] room_state is None for room {room_id}")
                     continue
                 room_state["canvas_event"].append(draw_data)
-                
                 await update_room_state(room_id,room_state)
-                
-                # await manager.broadcast(room_id,{
-                #     "event":"draw",
-                #     "data":draw_data
-                # },exclude=player_id) # dont send to drawer
                 
                 await r.publish(f"room:{room_id}",json.dumps({
                     "event":"draw",
                     "data":draw_data,
                     "exclude_id":player_id
                 }))
+                print(f"[DRAW] published to room:{room_id}")
              
             # GUESS EVENT
             elif event_type=="guess":
@@ -136,16 +133,10 @@ async def websocket_endpoint(websocket:WebSocket,room_id:int,player_id:int):
                     }))
                     
                 else:
-                    # await manager.broadcast(room_id,{
-                    #     "event":"guess",
-                    #     "player_id":player_id,
-                    #     "guess":guess
-                    # },exclude=drawer_id) 
                     await r.publish(f"room:{room_id}",json.dumps({
                         "event":"guess",
                         "player_id":player_id,
-                        "guess":guess,
-                        "exclude_id":drawer_id
+                        "guess":guess
                     })) 
     #moment-3 disconnet                             
     except WebSocketDisconnect:
