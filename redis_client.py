@@ -1,8 +1,16 @@
+import os
 import redis.asyncio as redis
-import asyncio
-import json
+from dotenv import load_dotenv
 
-r=redis.Redis(host="localhost",port=6379,decode_responses=True) # connection 1 — normal operations
+load_dotenv()
 
-# connection 2 -pub/sub only
-pubsub_r=redis.Redis(host="localhost", port=6379, decode_responses=True) # subscribe, listen, publish
+REDIS_URL = os.getenv("REDIS_URL")
+REDIS_HOST = os.getenv("REDIS_HOST", "localhost")
+REDIS_PORT = int(os.getenv("REDIS_PORT", "6379"))
+
+if REDIS_URL:
+    r = redis.from_url(REDIS_URL, decode_responses=True)
+    pubsub_r = redis.from_url(REDIS_URL, decode_responses=True)
+else:
+    r = redis.Redis(host=REDIS_HOST, port=REDIS_PORT, decode_responses=True)
+    pubsub_r = redis.Redis(host=REDIS_HOST, port=REDIS_PORT, decode_responses=True)
