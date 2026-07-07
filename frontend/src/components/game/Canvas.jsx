@@ -15,7 +15,7 @@ export default function Canvas({ sendMessage }) {
   const canvasEvents = useGameStore((s) => s.canvasEvents)
   const clearCanvas = useGameStore((s) => s.clearCanvas)
 
-  const isDrawer = playerId === drawerId
+  const isDrawer = Number(playerId) === Number(drawerId)
 
   // init fabric canvas once on mount
   useEffect(() => {
@@ -54,7 +54,7 @@ export default function Canvas({ sendMessage }) {
     if (!fc || !isDrawer) return
 
     function onPathCreated(e) {
-      const pathData = e.path.toJSON()
+      const pathData = e.path.toObject()
       sendMessage({ event: "draw", data: pathData })
     }
 
@@ -73,7 +73,7 @@ export default function Canvas({ sendMessage }) {
     const lastEvent = canvasEvents[canvasEvents.length - 1]
     if (!lastEvent) return
 
-    fabric.Path.fromObject(lastEvent).then((path) => {
+    fabric.Path.fromObject({ ...lastEvent, type: "path" }).then((path) => {
       path.selectable = false
       path.evented = false
       fc.add(path)
