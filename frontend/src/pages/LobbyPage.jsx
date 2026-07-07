@@ -1,24 +1,19 @@
 import { useEffect, useRef } from "react"
 import { useNavigate, useParams } from "react-router-dom"
 import { useGameStore } from "../store/useGameStore"
-import { useWebSocket } from "../hooks/useWebSocket"
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card"
 import { Badge } from "../components/ui/badge"
-import { Users, Clock, Lock, Globe } from "lucide-react"
+import { Users, Clock, Globe } from "lucide-react"
 
-export default function LobbyPage() {
+export default function LobbyPage({ sendMessage }) {
   const { roomId } = useParams()
   const navigate = useNavigate()
 
   const playerId = useGameStore((s) => s.playerId)
-  const playerName = useGameStore((s) => s.playerName)
   const players = useGameStore((s) => s.players)
   const maxPlayers = useGameStore((s) => s.maxPlayers)
   const timeLeft = useGameStore((s) => s.timeLeft)
   const status = useGameStore((s) => s.status)
-
-  const { sendMessage } = useWebSocket(parseInt(roomId), playerId)
-
   const round = useGameStore((s) => s.round)
 
   const navigated = useRef(false)

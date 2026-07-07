@@ -1,7 +1,6 @@
 import { useEffect } from "react"
 import { useParams, useNavigate } from "react-router-dom"
 import { useGameStore } from "../store/useGameStore"
-import { useWebSocket } from "../hooks/useWebSocket"
 import GameHeader from "../components/game/GameHeader"
 import Canvas from "../components/game/Canvas"
 import ChatBox from "../components/game/ChatBox"
@@ -10,7 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../components/
 import { Button } from "../components/ui/button"
 import { Crown } from "lucide-react"
 
-export default function GamePage() {
+export default function GamePage({ sendMessage }) {
   const { roomId } = useParams()
   const navigate = useNavigate()
 
@@ -18,8 +17,6 @@ export default function GamePage() {
   const players = useGameStore((s) => s.players)
   const messages = useGameStore((s) => s.messages)
   const reset = useGameStore((s) => s.reset)
-
-  const { sendMessage } = useWebSocket(parseInt(roomId), playerId)
 
   // detect game_end from messages
   const gameEnded = messages.some((m) => m.type === "system" && m.text === "Game over!")
